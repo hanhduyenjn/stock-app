@@ -1,0 +1,44 @@
+# Go binary files
+/bin/
+/obj/
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.o
+*.a
+
+# Dependency directories
+vendor/
+
+# IDE/editor specific files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Go modules
+go.sum
+# Ignore module cache
+pkg/
+
+# Coverage data
+*.out
+*.coverage
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variable files
+.env
