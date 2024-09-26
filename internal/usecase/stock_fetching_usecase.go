@@ -78,18 +78,7 @@ func (sf *StockFetchingUseCase) PrePopulateLatestData() error {
 }
 
 func (sf *StockFetchingUseCase) FetchLatestData() error {
-	fmt.Println("Fetching intraday data from API...")
-	if err := sf.tsFetcher.FetchIntradayData(sf.stockRepo); err != nil {
-		return fmt.Errorf("failed to fetch intraday data: %w", err)
-	}
-	fmt.Println("Intraday data fetched successfully.")
-
-	fmt.Println("Fetching daily data from API...")
-	if err := sf.tsFetcher.FetchDailyData(sf.stockRepo); err != nil {
-		return fmt.Errorf("failed to fetch daily data: %w", err)
-	}
-	fmt.Println("Daily data fetched successfully.")
-
+	fmt.Println("Fetching latest data from DB (may need to refresh)...")
 	latestData, err := sf.stockRepo.GetAllLatestIntradayData()
 	if err != nil {
 		return fmt.Errorf("failed to fetch latest data from DB: %w", err)
@@ -124,7 +113,7 @@ func (sf *StockFetchingUseCase) updateCache(latestData []*entity.StockQuote) err
 
 // ScheduleDataWrite schedules data write
 func (sf *StockFetchingUseCase) ScheduleDataWrite() {
-	ticker := time.NewTicker(time.Second*2)
+	ticker := time.NewTicker(time.Second*10)
 	defer ticker.Stop()
 
 	if utils.IsUSMarketOpen(time.Now()) {

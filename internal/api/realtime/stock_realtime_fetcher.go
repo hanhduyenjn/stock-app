@@ -92,8 +92,8 @@ func (h *RealTimeFetcher) StartRealTimeUpdates(latestQuoteData *entity.LatestQuo
 					fmt.Printf("Previous data for %s: %+v\n", symbol, prevQuote)
 
 					// Calculate changes based on historical data
-					change := price - prevQuote.Price
-					changePercentage := (change / prevQuote.Price) * 100
+					change := price - prevQuote.PrevClose
+					changePercentage := (change / prevQuote.PrevClose) * 100
 					highPrice := utils.Max(price, prevQuote.HighPrice)
 					lowPrice := utils.Min(price, prevQuote.LowPrice)
 					currentVolume := prevQuote.Volume + volume
@@ -107,7 +107,7 @@ func (h *RealTimeFetcher) StartRealTimeUpdates(latestQuoteData *entity.LatestQuo
 						HighPrice:        highPrice,
 						LowPrice:         lowPrice,
 						OpenPrice:        prevQuote.OpenPrice,
-						PrevClose:        prevQuote.Price,
+						PrevClose:        prevQuote.PrevClose,
 						Volume:           currentVolume,
 						Timestamp:        time.Unix(0, timestamp*int64(time.Millisecond)),
 					}

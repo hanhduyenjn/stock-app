@@ -1,10 +1,10 @@
 package main
 
 import (
-    "flag"
-    "fmt"
-    "os"
 	"database/sql"
+	"flag"
+	"fmt"
+	"os"
 	"sync"
 
 	_ "github.com/lib/pq"
@@ -19,12 +19,12 @@ import (
 	"stock-app/pkg/logger"
 )
 
-// Function to refresh resources
+// Function to refresh data in database
 func refreshResources(repo repository.StockRepo, cache cache.StockCache) {
 	fmt.Println("Refreshing resources...")
 	rtFetcher := realtime.NewRealTimeFetcher(config.AppConfig.RealTimeTradesEndpoint, config.AppConfig.FinnhubAPIKey, config.AppConfig.SymbolList)
 	tsFetcher := timeseries.NewTimeSeriesFetcher(config.AppConfig.TimeSeriesEndpoint, config.AppConfig.AlphaVantageAPIKey, config.AppConfig.SymbolList)
-	
+
 	rtStockData := &entity.LatestQuoteData{
 		StockData: make(map[string]*entity.StockQuote), // Initialize the map
 		Mu:        sync.RWMutex{},                      // Initialize the mutex
@@ -38,7 +38,7 @@ func refreshResources(repo repository.StockRepo, cache cache.StockCache) {
 }
 
 // Function to build resources
-func buildResources(repo repository.StockRepo, cache cache.StockCache) {
+func createTables(repo repository.StockRepo, cache cache.StockCache) {
 	fmt.Println("Building resources...")
 	if err := repo.CreateTables(); err != nil {
 		fmt.Println("Failed to create tables: ", err)
@@ -49,9 +49,9 @@ func buildResources(repo repository.StockRepo, cache cache.StockCache) {
 }
 
 // Function to clean up resources
-func cleanupResources(cache cache.StockCache){
+func cleanupResources(cache cache.StockCache) {
 	fmt.Println("Cleaning up resources...")
-    if err := cache.DeleteAll(); err != nil {
+	if err := cache.DeleteAll(); err != nil {
 		fmt.Println("Failed to delete all cache data: ", err)
 		os.Exit(1)
 	}
@@ -59,13 +59,13 @@ func cleanupResources(cache cache.StockCache){
 }
 
 func main() {
-    // Define command-line flags
-    refreshFlag := flag.Bool("refresh", false, "Refresh resources")
-    buildFlag := flag.Bool("build", false, "Build resources")
-    cleanupFlag := flag.Bool("cleanup", false, "Cleanup resources")
+	// Define command-line flags
+	refreshFlag := flag.Bool("refresh", false, "Refresh resources")
+	buildFlag := flag.Bool("build", false, "Build resources")
+	cleanupFlag := flag.Bool("cleanup", false, "Cleanup resources")
 
-    // Parse the command-line flags
-    flag.Parse()
+	// Parse the command-line flags
+	flag.Parse()
 
 	// Load configuration
 	config.LoadConfig()
@@ -86,15 +86,15 @@ func main() {
 	repo := repository.NewStockRepo(dbConn)
 	cache := cache.NewStockCache(config.AppConfig.CacheClient)
 
-    // Check which flag was set and call the corresponding function
-    if *refreshFlag {
+	// Check which flag was set and call the corresponding function
+	if *refreshFlag {
 		refreshResources(repo, cache)
-    } else if *buildFlag {
-        buildResources(repo, cache)
-    } else if *cleanupFlag {
-        cleanupResources(cache)
-    } else {
-        fmt.Println("Usage: resource.go --refresh | --build | --cleanup")
-        os.Exit(1)
-    }
+	} else if *buildFlag {
+		createTables(repo, cache)
+	} else if *cleanupFlag {
+		cleanupResources(cache)
+	} else {
+		fmt.Println("Usage: resource.go --refresh | --build | --cleanup")
+		os.Exit(1)
+	}
 }

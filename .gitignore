@@ -24,8 +24,6 @@ vendor/
 
 # Go modules
 go.sum
-# Ignore module cache
-pkg/
 
 # Coverage data
 *.out
