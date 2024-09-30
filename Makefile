@@ -9,7 +9,7 @@ check-go:
 	@command -v go &> /dev/null || { echo "Go could not be found. Please install Go and try again."; exit 1; }
 
 # Create tables in database
-create: check-go
+create-tables: check-go
 	@echo "reate tables in database..."
 	go build -o $(RESOURCE_BINARY) $(RESOURCE_GO_FILE) || { echo "Failed to build the resources."; exit 1; }
 
@@ -38,4 +38,4 @@ run: build
 
 # Default target
 .PHONY: all
-all: refresh cleanup build run
+all:  build run

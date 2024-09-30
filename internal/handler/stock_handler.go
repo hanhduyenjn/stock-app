@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -23,7 +24,7 @@ func NewStockHandler(stockUseCase *usecase.StockServingUseCase) *StockHandler {
 
 // GetAllQuotes handles GET requests to retrieve all stock data.
 func (sh *StockHandler) GetAllQuotes(c *gin.Context) {
-	stockList, err := sh.stockUseCase.GetAllQuotes(c)
+	stockList, err := sh.stockUseCase.GetAllQuotes() 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get list of stocks: %v", err)})
 		return
@@ -38,12 +39,39 @@ type GetQuoteRequest struct {
 
 // GetQuote handles GET requests to retrieve stock data by symbol.
 func (sh *StockHandler) GetQuote(c *gin.Context) {
-    symbol := c.Query("symbol")
-    if symbol == "" {
+	symbol := c.Query("symbol")
+	if symbol == "" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "symbol is a required query parameter"})
         return
     }
-	stock, err := sh.stockUseCase.GetQuote(c, symbol)
+
+	startTimeStr := c.Query("start")
+	endTimeStr := c.Query("end")
+
+	var startTime, endTime time.Time
+	var err error
+
+	if startTimeStr == "" {
+		startTime = time.Now().AddDate(0, 0, -1)
+	} else {
+		startTime, err = time.Parse(time.RFC3339, startTimeStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start time format"})
+			return
+		}
+	}
+
+	if endTimeStr == "" {
+		endTime = time.Now()
+	} else {
+		endTime, err = time.Parse(time.RFC3339, endTimeStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end time format"})
+			return
+		}
+	}
+
+	stock, err := sh.stockUseCase.GetQuote(symbol, startTime, endTime)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get stock data by symbol: %v", err)})
 		return

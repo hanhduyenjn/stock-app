@@ -1,12 +1,13 @@
 package usecase
 
 import (
-	"context"
 	"fmt"
+	"time"
 
 	"stock-app/internal/cache"
 	"stock-app/internal/entity"
 	"stock-app/internal/repository"
+	"stock-app/pkg/config"
 )
 
 // StockServingUseCase defines the business logic related to stock data.
@@ -16,6 +17,7 @@ type StockServingUseCase struct {
 	latestQuoteData *entity.LatestQuoteData
 }
 
+// NewStockServingUseCase creates a new instance of StockServingUseCase.
 func NewStockServingUseCase(
 	stockRepo repository.StockRepo,
 	stockCache cache.StockCache,
@@ -28,23 +30,41 @@ func NewStockServingUseCase(
 	}
 }
 
-// GetQuote retrieves stock data by symbol.
-func (uc *StockServingUseCase) GetQuote(ctx context.Context, symbol string) (*entity.StockQuote, error) {
-    // Check cache first
-    quote, found := uc.stockCache.Get(symbol)
-    if !found {
-        return quote, fmt.Errorf("stock not found for symbol: %s", symbol)
-    }
-    return quote, nil
+// GetLatestQuote retrieves the stock quote by symbol.
+func (uc *StockServingUseCase) GetQuote(symbol string, start, end time.Time) ([]*entity.StockQuote, error) {
+	// Check cache for quotes within the specified time range
+	quotes, found := uc.stockCache.Get(symbol, start, end)
+	if !found || len(quotes) == 0 {
+		// get from stockRepo
+		quotes, err := uc.stockRepo.GetHistoricalData(symbol, start, end)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get historical data by symbol and range: %w", err)
+		}
+		if len(quotes) > 0 {
+			if err := uc.stockCache.Set(symbol, quotes, config.AppConfig.CacheShortTTL); err != nil {
+				return nil, fmt.Errorf("failed to set historical data in cache: %w", err)
+			}
+		}
+	}
+	return quotes, nil
 }
 
 // GetAllQuotes retrieves stock data for all symbols.
-func (uc *StockServingUseCase) GetAllQuotes(ctx context.Context) ([]*entity.StockQuote, error) {
-    quotes, found := uc.stockCache.GetAll()
-    if !found {
-        return quotes, fmt.Errorf("stock data not found")
-    }
-    return quotes, nil
+func (uc *StockServingUseCase) GetAllQuotes() (map[string]*entity.StockQuote, error) {
+	// Check cache for latest quotes of all symbols
+	quotes, found := uc.stockCache.GetAllLatest()
+	if !found {
+		// get from stockRepo
+		quotes, err := uc.stockRepo.GetAllLatestData()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get all latest data: %w", err)
+		}
+		if err := uc.stockCache.SetAllLatest(quotes, config.AppConfig.CacheShortTTL); err != nil {
+			return nil, fmt.Errorf("failed to set all latest data in cache: %w", err)
+		}
+
+	}
+	return quotes, nil
 }
 
 // func (uc *StockServingUseCase) GetTrades(symbol, timeRange string) ([]*entity.Trade, error) {
@@ -63,7 +83,7 @@ func (uc *StockServingUseCase) GetAllQuotes(ctx context.Context) ([]*entity.Stoc
 //     // return trades, nil
 // }
 
-// func (uc *StockServingUseCase) GetCompanyProfile(symbol string) (*entity.CompanyProfile, error) { 
+// func (uc *StockServingUseCase) GetCompanyProfile(symbol string) (*entity.CompanyProfile, error) {
 //     // if symbol == "" {
 //     //     return nil, fmt.Errorf("symbol is required")
 //     // }
@@ -79,7 +99,7 @@ func (uc *StockServingUseCase) GetAllQuotes(ctx context.Context) ([]*entity.Stoc
 //     // return profile, nil
 // }
 
-// func (uc *StockServingUseCase) GetFinancials(symbol string) (*entity.Financials, error) {   
+// func (uc *StockServingUseCase) GetFinancials(symbol string) (*entity.Financials, error) {
 //     // if symbol == "" {
 //     //     return nil, fmt.Errorf("symbol is required")
 //     // }

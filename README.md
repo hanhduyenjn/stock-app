@@ -70,8 +70,13 @@ SERVER_PORT=8080
 
 ## Running the Application
 
-1. **Build and Run with Makefile:**
+1. **Start web server:**
 
    ```sh
    make all
+   ```
+
+   or 
+   ```sh
+   go run main.go
    ```

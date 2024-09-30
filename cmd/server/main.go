@@ -8,7 +8,6 @@ import (
 	_ "github.com/lib/pq"
 
 	"stock-app/internal/api/realtime"
-	"stock-app/internal/api/timeseries"
 	"stock-app/internal/cache"
 	"stock-app/internal/entity"
 	"stock-app/internal/handler"
@@ -48,8 +47,7 @@ func main() {
 	stockServingUseCase := usecase.NewStockServingUseCase(repo, cache, rtStockData)
 
 	rtFetcher := realtime.NewRealTimeFetcher(config.AppConfig.RealTimeTradesEndpoint, config.AppConfig.FinnhubAPIKey, config.AppConfig.SymbolList)
-	tsFetcher := timeseries.NewTimeSeriesFetcher(config.AppConfig.TimeSeriesEndpoint, config.AppConfig.AlphaVantageAPIKey, config.AppConfig.SymbolList)
-	stockFetchingUseCase := usecase.NewStockFetchingUseCase(repo, cache, rtFetcher, tsFetcher, rtStockData)
+	stockFetchingUseCase := usecase.NewStockFetchingUseCase(repo, cache, rtFetcher, rtStockData)
 
 	// Fetch data in real-time
 	if err := stockFetchingUseCase.FetchRealTimeData(); err != nil {
@@ -62,7 +60,7 @@ func main() {
     stock := router.Group("/stocks")
     {
         stock.GET("", stockHandler.GetAllQuotes)
-        stock.GET("/quote", stockHandler.GetQuote) // The handler will receive `symbol` and `range` as query parameters
+        stock.GET("/quote", stockHandler.GetQuote) // The handler will receive `symbol` and `start` with `end` as query parameters
         // stock.GET("/trade", stockHandler.GetTrades) // Similar to above, `symbol` and `range` are query parameters
         // stock.GET("/profile", stockHandler.GetCompanyProfile) // `symbol` can be a query parameter
         // stock.GET("/financials", stockHandler.GetFinancials) // `symbol` can be a query parameter

@@ -24,6 +24,7 @@ type Config struct {
     CacheClient            string
     CacheShortTTL          time.Duration
     CacheLongTTL           time.Duration
+    HistoricalDataDuration time.Duration
     ServerPort             string
     LogLevel               string
 }
@@ -48,8 +49,9 @@ func LoadConfig() {
         SymbolList:             getSymbolList(getEnv("SYMBOL_LIST", "AAPL,TSLA,GOOGL,AMZN,MSFT")),
         DatabaseURL:            getDBConnectionString(),
         CacheClient:            getRedisConnectionString(),
-        CacheShortTTL:          getCacheTTL("CACHE_SHORT_TTL", 10),
-        CacheLongTTL:           getCacheTTL("CACHE_LONG_TTL", 24000),
+        CacheShortTTL:          getTimeDuration("CACHE_SHORT_TTL", 10),
+        CacheLongTTL:           getTimeDuration("CACHE_LONG_TTL", 60*60*24*3),
+        HistoricalDataDuration: getTimeDuration("HISTORICAL_DATA_DURATION", 60*60*24*30),
         ServerPort:             getEnv("SERVER_PORT", "8080"),
         LogLevel:               getEnv("LOG_LEVEL", "debug"),
     }
@@ -89,7 +91,7 @@ func getSymbolList(symbols string) []string {
     return strings.Split(symbols, ",")
 }
 
-// getCacheTTL retrieves and converts the cache TTL value from the environment variable
-func getCacheTTL(key string, defaultTTL int) time.Duration {
+// getTimeDuration retrieves a time.Duration value from an environment variable
+func getTimeDuration(key string, defaultTTL int) time.Duration {
     return time.Duration(utils.ToInt(getEnv(key, strconv.Itoa(defaultTTL)))) * time.Second
 }

@@ -77,7 +77,7 @@ func (tf *TimeSeriesFetcher) fetchIntradayData(symbol string, stockRepo reposito
 	for timestamp, data := range apiResponse.TimeSeries {
 		if timestamp <= latestTimestamp {
 			fmt.Printf("Skipping data for symbol: %s, Timestamp: %s as it is before or equal to the latest timestamp from DB\n", symbol, timestamp)
-			break
+			continue
 		}
 		fmt.Printf("Inserting data for symbol: %s, Timestamp: %s\n", symbol, timestamp)
 		err = stockRepo.InsertIntradayData(symbol, timestamp, data.Open, data.High, data.Low, data.Close, data.Volume)

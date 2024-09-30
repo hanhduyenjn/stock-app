@@ -5,64 +5,60 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sync"
 
 	_ "github.com/lib/pq"
 
-	"stock-app/internal/api/realtime"
 	"stock-app/internal/api/timeseries"
 	"stock-app/internal/cache"
-	"stock-app/internal/entity"
 	"stock-app/internal/repository"
-	"stock-app/internal/usecase"
 	"stock-app/pkg/config"
 	"stock-app/pkg/logger"
 )
 
 // Function to refresh data in database
-func refreshResources(repo repository.StockRepo, cache cache.StockCache) {
-	fmt.Println("Refreshing resources...")
-	rtFetcher := realtime.NewRealTimeFetcher(config.AppConfig.RealTimeTradesEndpoint, config.AppConfig.FinnhubAPIKey, config.AppConfig.SymbolList)
+func fetchLatestData(repo repository.StockRepo) {
+	fmt.Println("Refreshing data...")
 	tsFetcher := timeseries.NewTimeSeriesFetcher(config.AppConfig.TimeSeriesEndpoint, config.AppConfig.AlphaVantageAPIKey, config.AppConfig.SymbolList)
 
-	rtStockData := &entity.LatestQuoteData{
-		StockData: make(map[string]*entity.StockQuote), // Initialize the map
-		Mu:        sync.RWMutex{},                      // Initialize the mutex
-	}
-	stockFetchingUseCase := usecase.NewStockFetchingUseCase(repo, cache, rtFetcher, tsFetcher, rtStockData)
-	if err := stockFetchingUseCase.FetchLatestData(); err != nil {
+	if err := tsFetcher.FetchDailyData(repo); err != nil {
 		fmt.Println("Failed to fetch latest data: ", err)
 		os.Exit(1)
 	}
-	fmt.Println("Refreshed resources.")
+
+	if err := tsFetcher.FetchIntradayData(repo); err != nil {
+		fmt.Println("Failed to fetch latest data: ", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Refreshed data in DB.")
 }
 
 // Function to build resources
-func createTables(repo repository.StockRepo, cache cache.StockCache) {
-	fmt.Println("Building resources...")
+func createTables(repo repository.StockRepo) {
+	fmt.Println("Creating tables and indexing...")
 	if err := repo.CreateTables(); err != nil {
 		fmt.Println("Failed to create tables: ", err)
 		os.Exit(1)
 	}
-	fmt.Println("Built resources.")
-	refreshResources(repo, cache)
+	fmt.Println("Created tables in DB.")
+	fetchLatestData(repo)
 }
 
 // Function to clean up resources
-func cleanupResources(cache cache.StockCache) {
-	fmt.Println("Cleaning up resources...")
+func cleanupCache(cache cache.StockCache) {
+	fmt.Println("Cleaning up cache...")
 	if err := cache.DeleteAll(); err != nil {
 		fmt.Println("Failed to delete all cache data: ", err)
 		os.Exit(1)
 	}
-	fmt.Println("Cleaned resources.")
+	fmt.Println("Cleaned cache.")
 }
 
 func main() {
 	// Define command-line flags
-	refreshFlag := flag.Bool("refresh", false, "Refresh resources")
-	buildFlag := flag.Bool("build", false, "Build resources")
-	cleanupFlag := flag.Bool("cleanup", false, "Cleanup resources")
+	createTableFlag := flag.Bool("create-tables", false, "Create tables")
+	refreshFlag := flag.Bool("refresh", false, "Fetch latest data to DB")
+	cleanupFlag := flag.Bool("cleanup", false, "Cleanup cache")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -88,13 +84,13 @@ func main() {
 
 	// Check which flag was set and call the corresponding function
 	if *refreshFlag {
-		refreshResources(repo, cache)
-	} else if *buildFlag {
-		createTables(repo, cache)
+		fetchLatestData(repo)
+	} else if *createTableFlag {
+		createTables(repo)
 	} else if *cleanupFlag {
-		cleanupResources(cache)
+		cleanupCache(cache)
 	} else {
-		fmt.Println("Usage: resource.go --refresh | --build | --cleanup")
+		fmt.Println("Usage: resource.go --refresh | --create-tables | --cleanup")
 		os.Exit(1)
 	}
 }

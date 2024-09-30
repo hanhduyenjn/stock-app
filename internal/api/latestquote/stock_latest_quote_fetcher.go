@@ -78,7 +78,7 @@ func (qf *LatestQuoteFetcher) FetchToCache(stockCache cache.StockCache) error {
 			fmt.Printf("Fetched data for symbol %s: %+v\n", symbol, stockQuote)
 
 			mu.Lock()
-			stockCache.Set(symbol, &stockQuote, config.AppConfig.CacheShortTTL)
+			stockCache.SetLatest(symbol, &stockQuote, config.AppConfig.CacheShortTTL)
 			mu.Unlock()
 
 			break
